@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aujc-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.json:/app/config.json
+      - ./logs:/app/logs
+      - ./tmp:/app/tmp
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - aujc-network
+
+  task:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aujc-task
+    command: python schedule_main_v2.py
+    volumes:
+      - ./config.json:/app/config.json
+      - ./logs:/app/logs
+      - ./tmp:/app/tmp
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - aujc-network
+
+networks:
+  aujc-network:
+    driver: bridge
+
+volumes:
+  config-data:
+  logs-data:
