@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoUpdateJdCookie Web管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab:hover {
+            color: #667eea;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+        .btn-success {
+            background: #2ed573;
+            color: white;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 {
+            margin: 0;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .close-btn:hover {
+            color: #333;
+        }
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4d;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #667eea;
+        }
+        .log-entry.error {
+            border-left-color: #ff4757;
+        }
+        .log-entry.success {
+            border-left-color: #2ed573;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AutoUpdateJdCookie Web管理</h1>
+            <p>自动化更新青龙面板的失效JD_COOKIE</p>
+        </div>
+
+        <div class="alert success" id="successAlert"></div>
+        <div class="alert error" id="errorAlert"></div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('accounts')">账号管理</button>
+            <button class="tab" onclick="showTab('qinglong')">青龙面板</button>
+            <button class="tab" onclick="showTab('global')">全局配置</button>
+            <button class="tab" onclick="showTab('notification')">通知配置</button>
+            <button class="tab" onclick="showTab('proxy')">代理配置</button>
+            <button class="tab" onclick="showTab('logs')">实时日志</button>
+        </div>
+
+        <div id="accounts" class="tab-content active">
+            <h2>账号管理</h2>
+            <button class="btn btn-primary" onclick="showAccountModal()">+ 添加账号</button>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>类型</th>
+                        <th>pt_pin</th>
+                        <th>自动验证码</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="accountTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="qinglong" class="tab-content">
+            <h2>青龙面板配置</h2>
+            <div class="form-group">
+                <label>URL *</label>
+                <input type="text" id="qlUrl" placeholder="http://127.0.0.1:5700">
+            </div>
+            <div class="form-group">
+                <label>Client ID</label>
+                <input type="text" id="qlClientId" placeholder="可选">
+            </div>
+            <div class="form-group">
+                <label>Client Secret</label>
+                <input type="text" id="qlClientSecret" placeholder="可选">
+            </div>
+            <div class="form-group">
+                <label>Token</label>
+                <input type="text" id="qlToken" placeholder="可选">
+            </div>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="qlUsername" placeholder="可选">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="qlPassword" placeholder="可选">
+            </div>
+            <button class="btn btn-primary" onclick="saveQinglongConfig()">保存配置</button>
+            <button class="btn btn-success" onclick="testQinglongConnection()">测试连接</button>
+        </div>
+
+        <div id="global" class="tab-content">
+            <h2>全局配置</h2>
+            <div class="form-group">
+                <label>无头模式</label>
+                <label class="switch">
+                    <input type="checkbox" id="headless">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Cron表达式 *</label>
+                <input type="text" id="cronExpression" placeholder="15 0 * * *">
+            </div>
+            <div class="form-group">
+                <label>User-Agent</label>
+                <input type="text" id="userAgent" placeholder="留空使用默认">
+            </div>
+            <div class="form-group">
+                <label>日志脱敏</label>
+                <label class="switch">
+                    <input type="checkbox" id="enableDesensitize">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <button class="btn btn-primary" onclick="saveGlobalConfig()">保存配置</button>
+        </div>
+
+        <div id="notification" class="tab-content">
+            <h2>通知配置</h2>
+            <div class="form-group">
+                <label>启用消息通知</label>
+                <label class="switch">
+                    <input type="checkbox" id="isSendMsg">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>更新成功通知</label>
+                <label class="switch">
+                    <input type="checkbox" id="isSendSuccessMsg">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>更新失败通知</label>
+                <label class="switch">
+                    <input type="checkbox" id="isSendFailMsg">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>企业微信地址（每行一个）</label>
+                <textarea id="sendWecom" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Webhook地址（每行一个）</label>
+                <textarea id="sendWebhook" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>钉钉地址（每行一个）</label>
+                <textarea id="sendDingtalk" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>飞书地址（每行一个）</label>
+                <textarea id="sendFeishu" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>PushPlus地址（每行一个）</label>
+                <textarea id="sendPushplus" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Server酱地址（每行一个）</label>
+                <textarea id="sendServerchan" rows="3"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="saveNotificationConfig()">保存配置</button>
+        </div>
+
+        <div id="proxy" class="tab-content">
+            <h2>代理配置</h2>
+            <div class="form-group">
+                <label>代理服务器地址</label>
+                <input type="text" id="proxyServer" placeholder="http://127.0.0.1:7890">
+            </div>
+            <div class="form-group">
+                <label>代理用户名</label>
+                <input type="text" id="proxyUsername" placeholder="可选">
+            </div>
+            <div class="form-group">
+                <label>代理密码</label>
+                <input type="password" id="proxyPassword" placeholder="可选">
+            </div>
+            <button class="btn btn-primary" onclick="saveProxyConfig()">保存配置</button>
+        </div>
+
+        <div id="logs" class="tab-content">
+            <h2>实时日志</h2>
+            <div class="log-container" id="logContainer"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="accountModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">添加账号</h3>
+                <button class="close-btn" onclick="hideAccountModal()">&times;</button>
+            </div>
+            <input type="hidden" id="editUsername">
+            <div class="form-group">
+                <label>用户名 *</label>
+                <input type="text" id="accountUsername" placeholder="手机号或QQ号">
+            </div>
+            <div class="form-group">
+                <label>密码 *</label>
+                <input type="password" id="accountPassword" placeholder="密码">
+            </div>
+            <div class="form-group">
+                <label>pt_pin *</label>
+                <input type="text" id="accountPtPin" placeholder="京东pt_pin">
+            </div>
+            <div class="form-group">
+                <label>账号类型</label>
+                <select id="accountUserType">
+                    <option value="jd">京东账号</option>
+                    <option value="qq">QQ账号</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>强制更新</label>
+                <label class="switch">
+                    <input type="checkbox" id="accountForceUpdate">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>自动处理验证码</label>
+                <label class="switch">
+                    <input type="checkbox" id="accountAutoSwitch" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>短信验证码处理方式</label>
+                <select id="accountSmsFunc">
+                    <option value="no">关闭</option>
+                    <option value="manual_input">手动输入</option>
+                    <option value="webhook">Webhook</option>
+                </select>
+            </div>
+            <div class="form-group" id="smsWebhookGroup" style="display:none;">
+                <label>短信Webhook地址</label>
+                <input type="text" id="accountSmsWebhook" placeholder="https://127.0.0.1:3000/getCode">
+            </div>
+            <div class="form-group">
+                <label>语音验证码处理方式</label>
+                <select id="accountVoiceFunc">
+                    <option value="no">关闭</option>
+                    <option value="manual_input">手动输入</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="saveAccount()">保存</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let ws = null;
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function showAlert(message, type) {
+            const alert = document.getElementById(type + 'Alert');
+            alert.textContent = message;
+            alert.style.display = 'block';
+            setTimeout(() => alert.style.display = 'none', 3000);
+        }
+
+        async function fetchAPI(url, options = {}) {
+            try {
+                const response = await fetch(API_BASE + url, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                return await response.json();
+            } catch (error) {
+                showAlert('请求失败: ' + error.message, 'error');
+                throw error;
+            }
+        }
+
+        async function loadAccounts() {
+            const data = await fetchAPI('/accounts');
+            const tbody = document.getElementById('accountTableBody');
+            tbody.innerHTML = '';
+            for (const [username, account] of Object.entries(data)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${username}</td>
+                    <td>${account.user_type === 'jd' ? '京东' : 'QQ'}</td>
+                    <td>${account.pt_pin}</td>
+                    <td>${account.auto_switch ? '是' : '否'}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editAccount('${username}')">编辑</button>
+                        <button class="btn btn-danger" onclick="deleteAccount('${username}')">删除</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        function showAccountModal(username = '') {
+            document.getElementById('accountModal').classList.add('active');
+            document.getElementById('modalTitle').textContent = username ? '编辑账号' : '添加账号';
+            document.getElementById('editUsername').value = username;
+            if (username) {
+                loadAccountData(username);
+            } else {
+                clearAccountForm();
+            }
+        }
+
+        function hideAccountModal() {
+            document.getElementById('accountModal').classList.remove('active');
+        }
+
+        async function loadAccountData(username) {
+            const data = await fetchAPI('/accounts');
+            const account = data[username];
+            document.getElementById('accountUsername').value = username;
+            document.getElementById('accountUsername').disabled = true;
+            document.getElementById('accountPassword').value = account.password;
+            document.getElementById('accountPtPin').value = account.pt_pin;
+            document.getElementById('accountUserType').value = account.user_type;
+            document.getElementById('accountForceUpdate').checked = account.force_update;
+            document.getElementById('accountAutoSwitch').checked = account.auto_switch;
+            document.getElementById('accountSmsFunc').value = account.sms_func || 'no';
+            document.getElementById('accountSmsWebhook').value = account.sms_webhook || '';
+            document.getElementById('accountVoiceFunc').value = account.voice_func || 'no';
+            toggleSmsWebhook();
+        }
+
+        function clearAccountForm() {
+            document.getElementById('accountUsername').value = '';
+            document.getElementById('accountUsername').disabled = false;
+            document.getElementById('accountPassword').value = '';
+            document.getElementById('accountPtPin').value = '';
+            document.getElementById('accountUserType').value = 'jd';
+            document.getElementById('accountForceUpdate').checked = false;
+            document.getElementById('accountAutoSwitch').checked = true;
+            document.getElementById('accountSmsFunc').value = 'no';
+            document.getElementById('accountSmsWebhook').value = '';
+            document.getElementById('accountVoiceFunc').value = 'no';
+            toggleSmsWebhook();
+        }
+
+        function toggleSmsWebhook() {
+            const smsFunc = document.getElementById('accountSmsFunc').value;
+            document.getElementById('smsWebhookGroup').style.display = smsFunc === 'webhook' ? 'block' : 'none';
+        }
+
+        document.getElementById('accountSmsFunc').addEventListener('change', toggleSmsWebhook);
+
+        async function saveAccount() {
+            const username = document.getElementById('accountUsername').value;
+            const editUsername = document.getElementById('editUsername').value;
+            const account = {
+                password: document.getElementById('accountPassword').value,
+                pt_pin: document.getElementById('accountPtPin').value,
+                user_type: document.getElementById('accountUserType').value,
+                force_update: document.getElementById('accountForceUpdate').checked,
+                auto_switch: document.getElementById('accountAutoSwitch').checked,
+                sms_func: document.getElementById('accountSmsFunc').value,
+                sms_webhook: document.getElementById('accountSmsWebhook').value,
+                voice_func: document.getElementById('accountVoiceFunc').value
+            };
+
+            if (!username || !account.password || !account.pt_pin) {
+                showAlert('请填写必填项', 'error');
+                return;
+            }
+
+            try {
+                if (editUsername) {
+                    await fetchAPI(`/accounts/${editUsername}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(account)
+                    });
+                } else {
+                    await fetchAPI(`/accounts?username=${encodeURIComponent(username)}`, {
+                        method: 'POST',
+                        body: JSON.stringify(account)
+                    });
+                }
+                showAlert('账号已保存', 'success');
+                hideAccountModal();
+                loadAccounts();
+            } catch (error) {
+                showAlert('保存失败: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteAccount(username) {
+            if (!confirm('确定要删除这个账号吗？')) return;
+            try {
+                await fetchAPI(`/accounts/${username}`, { method: 'DELETE' });
+                showAlert('账号已删除', 'success');
+                loadAccounts();
+            } catch (error) {
+                showAlert('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        async function editAccount(username) {
+            showAccountModal(username);
+        }
+
+        async function loadQinglongConfig() {
+            const data = await fetchAPI('/qinglong');
+            document.getElementById('qlUrl').value = data.url;
+            document.getElementById('qlClientId').value = data.client_id;
+            document.getElementById('qlClientSecret').value = data.client_secret;
+            document.getElementById('qlToken').value = data.token;
+            document.getElementById('qlUsername').value = data.username;
+            document.getElementById('qlPassword').value = data.password;
+        }
+
+        async function saveQinglongConfig() {
+            const config = {
+                url: document.getElementById('qlUrl').value,
+                client_id: document.getElementById('qlClientId').value,
+                client_secret: document.getElementById('qlClientSecret').value,
+                token: document.getElementById('qlToken').value,
+                username: document.getElementById('qlUsername').value,
+                password: document.getElementById('qlPassword').value
+            };
+
+            if (!config.url) {
+                showAlert('请填写青龙面板URL', 'error');
+                return;
+            }
+
+            try {
+                await fetchAPI('/qinglong', {
+                    method: 'POST',
+                    body: JSON.stringify(config)
+                });
+                showAlert('配置已保存', 'success');
+            } catch (error) {
+                showAlert('保存失败: ' + error.message, 'error');
+            }
+        }
+
+        async function testQinglongConnection() {
+            try {
+                const result = await fetchAPI('/qinglong/test', { method: 'POST' });
+                if (result.success) {
+                    showAlert(`连接成功！环境变量数量: ${result.env_count}`, 'success');
+                } else {
+                    showAlert('连接失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showAlert('测试失败: ' + error.message, 'error');
+            }
+        }
+
+        async function loadGlobalConfig() {
+            const data = await fetchAPI('/global');
+            document.getElementById('headless').checked = data.headless;
+            document.getElementById('cronExpression').value = data.cron_expression;
+            document.getElementById('userAgent').value = data.user_agent || '';
+            document.getElementById('enableDesensitize').checked = data.enable_desensitize;
+        }
+
+        async function saveGlobalConfig() {
+            const config = {
+                headless: document.getElementById('headless').checked,
+                cron_expression: document.getElementById('cronExpression').value,
+                user_agent: document.getElementById('userAgent').value,
+                enable_desensitize: document.getElementById('enableDesensitize').checked
+            };
+
+            if (!config.cron_expression) {
+                showAlert('请填写Cron表达式', 'error');
+                return;
+            }
+
+            try {
+                await fetchAPI('/global', {
+                    method: 'POST',
+                    body: JSON.stringify(config)
+                });
+                showAlert('配置已保存', 'success');
+            } catch (error) {
+                showAlert('保存失败: ' + error.message, 'error');
+            }
+        }
+
+        async function loadNotificationConfig() {
+            const data = await fetchAPI('/notification');
+            document.getElementById('isSendMsg').checked = data.is_send_msg;
+            document.getElementById('isSendSuccessMsg').checked = data.is_send_success_msg;
+            document.getElementById('isSendFailMsg').checked = data.is_send_fail_msg;
+            document.getElementById('sendWecom').value = data.send_wecom.join('\n');
+            document.getElementById('sendWebhook').value = data.send_webhook.join('\n');
+            document.getElementById('sendDingtalk').value = data.send_dingtalk.join('\n');
+            document.getElementById('sendFeishu').value = data.send_feishu.join('\n');
+            document.getElementById('sendPushplus').value = data.send_pushplus.join('\n');
+            document.getElementById('sendServerchan').value = data.send_serverchan.join('\n');
+        }
+
+        async function saveNotificationConfig() {
+            const config = {
+                is_send_msg: document.getElementById('isSendMsg').checked,
+                is_send_success_msg: document.getElementById('isSendSuccessMsg').checked,
+                is_send_fail_msg: document.getElementById('isSendFailMsg').checked,
+                send_wecom: document.getElementById('sendWecom').value.split('\n').filter(s => s.trim()),
+                send_webhook: document.getElementById('sendWebhook').value.split('\n').filter(s => s.trim()),
+                send_dingtalk: document.getElementById('sendDingtalk').value.split('\n').filter(s => s.trim()),
+                send_feishu: document.getElementById('sendFeishu').value.split('\n').filter(s => s.trim()),
+                send_pushplus: document.getElementById('sendPushplus').value.split('\n').filter(s => s.trim()),
+                send_serverchan: document.getElementById('sendServerchan').value.split('\n').filter(s => s.trim())
+            };
+
+            try {
+                await fetchAPI('/notification', {
+                    method: 'POST',
+                    body: JSON.stringify(config)
+                });
+                showAlert('配置已保存', 'success');
+            } catch (error) {
+                showAlert('保存失败: ' + error.message, 'error');
+            }
+        }
+
+        async function loadProxyConfig() {
+            const data = await fetchAPI('/proxy');
+            if (data) {
+                document.getElementById('proxyServer').value = data.server || '';
+                document.getElementById('proxyUsername').value = data.username || '';
+                document.getElementById('proxyPassword').value = data.password || '';
+            }
+        }
+
+        async function saveProxyConfig() {
+            const config = {
+                server: document.getElementById('proxyServer').value,
+                username: document.getElementById('proxyUsername').value,
+                password: document.getElementById('proxyPassword').value
+            };
+
+            try {
+                await fetchAPI('/proxy', {
+                    method: 'POST',
+                    body: JSON.stringify(config)
+                });
+                showAlert('配置已保存', 'success');
+            } catch (error) {
+                showAlert('保存失败: ' + error.message, 'error');
+            }
+        }
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/logs`);
+
+            ws.onmessage = function(event) {
+                const log = JSON.parse(event.data);
+                const container = document.getElementById('logContainer');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${log.level === 'ERROR' ? 'error' : log.level === 'INFO' ? 'success' : ''}`;
+                entry.textContent = `[${log.timestamp}] [${log.level}] ${log.message}`;
+                container.appendChild(entry);
+                container.scrollTop = container.scrollHeight;
+            };
+
+            ws.onclose = function() {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        window.onload = function() {
+            loadAccounts();
+            loadQinglongConfig();
+            loadGlobalConfig();
+            loadNotificationConfig();
+            loadProxyConfig();
+            connectWebSocket();
+        };
+    </script>
+</body>
+</html>
