@@ -4,3 +4,9 @@ playwright
 loguru
 croniter
 inputimeout
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+paddleocr>=2.7.0
+paddlepaddle>=2.6.0
