@@ -1,24 +1,45 @@
-# 使用官方 Python 3.10.14 基础镜像
-FROM python:3.10.14-slim
+FROM python:3.10.14-slim as builder
 
-# 设置工作目录
 WORKDIR /app
 
-# 复制 requirements.txt 并安装依赖
 COPY requirements.txt .
 
-# 安装依赖
-RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
-RUN playwright install chromium
-RUN playwright install-deps
+RUN pip install --no-cache-dir --user -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
+FROM python:3.10.14-slim
 
-# 时区
-RUN apt-get install -y tzdata
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    gnupg \
+    ca-certificates \
+    fonts-liberation \
+    fonts-ipafont-gothic \
+    fonts-wqy-zenhei \
+    fonts-noto-cjk \
+    tzdata \
+    libgomp1 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-# 复制应用文件
+
+COPY --from=builder /root/.local /root/.local
+
+ENV PATH=/root/.local/bin:$PATH
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ && \
+    playwright install chromium && \
+    playwright install-deps chromium
+
 COPY . .
 
-# 定义启动命令，运行 main.py
-CMD ["python", "schedule_main.py"]
+RUN mkdir -p /app/logs /app/tmp /app/config
+
+EXPOSE 8080
+
+CMD ["uvicorn", "web.app:app", "--host", "0.0.0.0", "--port", "8080"]
