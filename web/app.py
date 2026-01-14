@@ -9,9 +9,15 @@ from datetime import datetime
 import uuid
 
 from web.models import (
-    AppConfig, AccountConfig, QinglongConfig, GlobalConfig,
-    NotificationConfig, ProxyConfig, TaskStatus,
-    AccountTestResult, QinglongTestResult
+    AppConfig,
+    AccountConfig,
+    QinglongConfig,
+    GlobalConfig,
+    NotificationConfig,
+    ProxyConfig,
+    TaskStatus,
+    AccountTestResult,
+    QinglongTestResult,
 )
 from config.settings import get_config_manager
 
@@ -30,14 +36,16 @@ task_status: dict = {}
 
 log_queue = asyncio.Queue()
 
+
 class LogHandler(logging.Handler):
     def emit(self, record):
         log_entry = {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "level": record.levelname,
-            "message": self.format(record)
+            "message": self.format(record),
         }
         asyncio.create_task(log_queue.put(log_entry))
+
 
 async def broadcast_logs():
     while True:
@@ -52,13 +60,18 @@ async def broadcast_logs():
             for ws in disconnected:
                 active_websockets.remove(ws)
 
+
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(broadcast_logs())
 
+
 @app.get("/")
 async def root():
-    return HTMLResponse(content=open("web/static/index.html", "r", encoding="utf-8").read())
+    return HTMLResponse(
+        content=open("web/static/index.html", "r", encoding="utf-8").read()
+    )
+
 
 @app.get("/api/config")
 async def get_config():
@@ -69,6 +82,7 @@ async def get_config():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/config")
 async def update_config(config: AppConfig):
     try:
@@ -77,6 +91,7 @@ async def update_config(config: AppConfig):
         return {"success": True, "message": "配置已更新"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/accounts")
 async def get_accounts():
@@ -87,6 +102,7 @@ async def get_accounts():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/accounts")
 async def add_account(username: str, account: AccountConfig):
     try:
@@ -95,6 +111,7 @@ async def add_account(username: str, account: AccountConfig):
         return {"success": True, "message": "账号已添加"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.put("/api/accounts/{username}")
 async def update_account(username: str, account: AccountConfig):
@@ -105,6 +122,7 @@ async def update_account(username: str, account: AccountConfig):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.delete("/api/accounts/{username}")
 async def delete_account(username: str):
     try:
@@ -113,6 +131,7 @@ async def delete_account(username: str):
         return {"success": True, "message": "账号已删除"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/qinglong")
 async def get_qinglong_config():
@@ -123,6 +142,7 @@ async def get_qinglong_config():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/qinglong")
 async def update_qinglong_config(config: QinglongConfig):
     try:
@@ -132,10 +152,12 @@ async def update_qinglong_config(config: QinglongConfig):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/qinglong/test")
 async def test_qinglong_connection():
     try:
         from api.qinglong import QlApi, QlOpenApi
+
         config_manager = get_config_manager()
         config = config_manager.get_config()
         ql_config = config.qinglong_data
@@ -149,21 +171,24 @@ async def test_qinglong_connection():
             response = await qlapi.get_envs()
         else:
             qlapi = QlApi(ql_config.url)
-            response = await qlapi.login_by_username(ql_config.username, ql_config.password)
-        if response.get('code') == 200:
+            response = await qlapi.login_by_username(
+                ql_config.username, ql_config.password
+            )
+        if response.get("code") == 200:
             env_response = await qlapi.get_envs()
             return QinglongTestResult(
                 success=True,
                 message="连接成功",
-                env_count=len(env_response.get('data', []))
+                env_count=len(env_response.get("data", [])),
             )
         else:
             return QinglongTestResult(
                 success=False,
-                message=f"连接失败: {response.get('message', '未知错误')}"
+                message=f"连接失败: {response.get('message', '未知错误')}",
             )
     except Exception as e:
         return QinglongTestResult(success=False, message=f"连接失败: {str(e)}")
+
 
 @app.get("/api/global")
 async def get_global_config():
@@ -174,6 +199,7 @@ async def get_global_config():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/global")
 async def update_global_config(config: GlobalConfig):
     try:
@@ -182,6 +208,7 @@ async def update_global_config(config: GlobalConfig):
         return {"success": True, "message": "全局配置已更新"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/notification")
 async def get_notification_config():
@@ -192,6 +219,7 @@ async def get_notification_config():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/notification")
 async def update_notification_config(config: NotificationConfig):
     try:
@@ -200,6 +228,7 @@ async def update_notification_config(config: NotificationConfig):
         return {"success": True, "message": "通知配置已更新"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/proxy")
 async def get_proxy_config():
@@ -210,6 +239,7 @@ async def get_proxy_config():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/api/proxy")
 async def update_proxy_config(config: ProxyConfig):
     try:
@@ -218,6 +248,7 @@ async def update_proxy_config(config: ProxyConfig):
         return {"success": True, "message": "代理配置已更新"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/task/start")
 async def start_task():
@@ -228,11 +259,12 @@ async def start_task():
             status="running",
             message="任务已启动",
             start_time=datetime.now().isoformat(),
-            logs=[]
+            logs=[],
         )
         return {"success": True, "task_id": task_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/task/stop")
 async def stop_task(task_id: str):
@@ -247,12 +279,14 @@ async def stop_task(task_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/api/task/status/{task_id}")
 async def get_task_status(task_id: str):
     if task_id in task_status:
         return task_status[task_id]
     else:
         raise HTTPException(status_code=404, detail="任务不存在")
+
 
 @app.get("/ws/logs")
 async def websocket_logs(websocket: WebSocket):

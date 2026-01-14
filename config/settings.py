@@ -15,7 +15,15 @@ import json
 import os
 from pathlib import Path
 from typing import Optional
-from web.models import AppConfig, AccountConfig, QinglongConfig, GlobalConfig, NotificationConfig, ProxyConfig
+from models import (
+    AppConfig,
+    AccountConfig,
+    QinglongConfig,
+    GlobalConfig,
+    NotificationConfig,
+    ProxyConfig,
+)
+
 
 class ConfigManager:
     """
@@ -58,12 +66,13 @@ class ConfigManager:
             return self._config
 
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(self.config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 self._config = AppConfig(**data)
                 return self._config
         except Exception as e:
             raise RuntimeError(f"加载配置文件失败: {e}")
+
     def save_config(self):
         """
         保存配置文件
@@ -74,10 +83,16 @@ class ConfigManager:
         if self._config is None:
             raise RuntimeError("配置未初始化")
         try:
-            with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(self._config.model_dump(mode='json'), f, ensure_ascii=False, indent=2)
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                json.dump(
+                    self._config.model_dump(mode="json"),
+                    f,
+                    ensure_ascii=False,
+                    indent=2,
+                )
         except Exception as e:
             raise RuntimeError(f"保存配置文件失败: {e}")
+
     def update_config(self, config: AppConfig):
         """
         更新完整配置
@@ -87,6 +102,7 @@ class ConfigManager:
         """
         self._config = config
         self.save_config()
+
     def add_account(self, username: str, account: AccountConfig):
         """
         添加账号配置
@@ -99,6 +115,7 @@ class ConfigManager:
             self.load_config()
         self._config.user_datas[username] = account
         self.save_config()
+
     def remove_account(self, username: str):
         """
         删除账号配置
@@ -111,6 +128,7 @@ class ConfigManager:
         if username in self._config.user_datas:
             del self._config.user_datas[username]
             self.save_config()
+
     def update_account(self, username: str, account: AccountConfig):
         """
         更新账号配置
@@ -123,6 +141,7 @@ class ConfigManager:
             self.load_config()
         self._config.user_datas[username] = account
         self.save_config()
+
     def update_qinglong_config(self, config: QinglongConfig):
         """
         更新青龙面板配置
@@ -134,6 +153,7 @@ class ConfigManager:
             self.load_config()
         self._config.qinglong_data = config
         self.save_config()
+
     def update_global_config(self, config: GlobalConfig):
         """
         更新全局配置
@@ -145,6 +165,7 @@ class ConfigManager:
             self.load_config()
         self._config.global_config = config
         self.save_config()
+
     def update_notification_config(self, config: NotificationConfig):
         """
         更新通知配置
@@ -156,6 +177,7 @@ class ConfigManager:
             self.load_config()
         self._config.notification_config = config
         self.save_config()
+
     def update_proxy_config(self, config: Optional[ProxyConfig]):
         """
         更新代理配置
@@ -167,6 +189,7 @@ class ConfigManager:
             self.load_config()
         self._config.proxy_config = config
         self.save_config()
+
     def get_config(self) -> AppConfig:
         """
         获取当前配置
@@ -178,7 +201,9 @@ class ConfigManager:
             self.load_config()
         return self._config
 
+
 _config_manager: Optional[ConfigManager] = None
+
 
 def get_config_manager(config_path: str = "config.json") -> ConfigManager:
     """

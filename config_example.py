@@ -6,7 +6,7 @@ user_datas = {
         "sms_func": "webhook",
         "sms_webhook": "https://127.0.0.1:3000/getCode",
         # 设置为True时, 即使账号未失效也更新
-        "force_update": False
+        "force_update": False,
     },
     # QQ账号
     "168465451": {
@@ -15,18 +15,14 @@ user_datas = {
         "pt_pin": "123456",
         # 指定为qq账号
         "user_type": "qq",
-        "force_update": True
+        "force_update": True,
     },
-    "13500000001": {
-        "password": "123456",
-        "pt_pin": "123456",
-        "sms_func": "no"
-    },
+    "13500000001": {"password": "123456", "pt_pin": "123456", "sms_func": "no"},
     "13500000002": {
         "password": "123456",
         "pt_pin": "123456",
         # auto_switch设置为False时，关闭全自动过验证码，改为手动过验证码
-        "auto_switch": False
+        "auto_switch": False,
     },
 }
 
@@ -38,7 +34,7 @@ qinglong_data = {
     "username": "admin",
     "password": "123456",
     # 可选参数，QL面板的sessionid，主要是避免抢占QL后台的登录。需要在浏览器上，F12上获取Authorization的请求头。如果为空或不设置则账号密码登录
-    "token": ""
+    "token": "",
 }
 
 # 定时器
@@ -55,16 +51,11 @@ is_send_success_msg = True
 is_send_fail_msg = True
 # 配置发送地址
 send_info = {
-    "send_wecom": [
-    ],
-    "send_webhook": [
-    ],
-    "send_dingtalk": [
-    ],
-    "send_feishu": [
-    ],
-    "send_pushplus": [
-    ]
+    "send_wecom": [],
+    "send_webhook": [],
+    "send_dingtalk": [],
+    "send_feishu": [],
+    "send_pushplus": [],
 }
 
 # sms_func为填写验信验证码的模式，有3种可选，如下：
@@ -84,5 +75,5 @@ proxy = {
     # 代理服务器账号
     "username": "",
     # 代理服务器密码
-    "password": ""
+    "password": "",
 }

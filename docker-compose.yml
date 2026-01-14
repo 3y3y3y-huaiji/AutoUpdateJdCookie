@@ -1,43 +1,44 @@
 version: '3.8'
 
 services:
-  web:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: aujc-web
+    container_name: auto-update-jd-cookie
     ports:
-      - "8080:8080"
+      - "8686:8000"
     volumes:
       - ./config.json:/app/config.json
       - ./logs:/app/logs
       - ./tmp:/app/tmp
     environment:
       - PYTHONUNBUFFERED=1
+      - CONFIG_PATH=/app/config.json
+      - LOG_LEVEL=INFO
     restart: unless-stopped
     networks:
-      - aujc-network
+      - app-network
+    command: ["python", "-m", "uvicorn", "web.app:app", "--host", "0.0.0.0", "--port", "8000"]
 
-  task:
+  scheduler:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: aujc-task
-    command: python schedule_main_v2.py
+    container_name: auto-update-jd-cookie-scheduler
     volumes:
       - ./config.json:/app/config.json
       - ./logs:/app/logs
       - ./tmp:/app/tmp
     environment:
       - PYTHONUNBUFFERED=1
+      - CONFIG_PATH=/app/config.json
+      - LOG_LEVEL=INFO
     restart: unless-stopped
     networks:
-      - aujc-network
+      - app-network
+    command: ["python", "schedule_main.py"]
 
 networks:
-  aujc-network:
+  app-network:
     driver: bridge
-
-volumes:
-  config-data:
-  logs-data:

@@ -15,14 +15,14 @@ def prompt_input(prompt, default=None, required=False, choices=None):
         print("⚠️  此项为必填，请重新输入。")
 
 
-def prompt_yes_no(prompt, default='y'):
-    choices_show = 'Y/n' if default.lower() == 'y' else 'y/N'
+def prompt_yes_no(prompt, default="y"):
+    choices_show = "Y/n" if default.lower() == "y" else "y/N"
     while True:
         choice = input(f"{prompt} ({choices_show}): ").strip().lower()
         if not choice:
-            return default.lower() == 'y'
-        if choice in ['y', 'n']:
-            return choice == 'y'
+            return default.lower() == "y"
+        if choice in ["y", "n"]:
+            return choice == "y"
         print("⚠️  请输入 'y' 或 'n'。")
 
 
@@ -41,23 +41,30 @@ def collect_user_datas():
         user_type = prompt_input("账号类型 (jd/qq)", default="jd", choices=["jd", "qq"])
         password = prompt_input("密码", required=True)
         pt_pin = prompt_input("pt_pin (必填)", required=True)
-        force_update = prompt_yes_no("是否强制更新？(默认为n)", default='n')
-        auto_switch = prompt_yes_no("是否自动处理验证码？(默认为y)", default='y')
-        individual_sms = prompt_yes_no("是否单独配置短信验证码处理方式？(默认为n)", default='n')
+        force_update = prompt_yes_no("是否强制更新？(默认为n)", default="n")
+        auto_switch = prompt_yes_no("是否自动处理验证码？(默认为y)", default="y")
+        individual_sms = prompt_yes_no(
+            "是否单独配置短信验证码处理方式？(默认为n)", default="n"
+        )
         sms_func = None
         sms_webhook = None
         if individual_sms:
-            sms_func = prompt_input("短信验证码处理方式 (no/manual_input/webhook) (默认为manual_input)", default="manual_input",
-                                    choices=["no", "manual_input", "webhook"])
+            sms_func = prompt_input(
+                "短信验证码处理方式 (no/manual_input/webhook) (默认为manual_input)",
+                default="manual_input",
+                choices=["no", "manual_input", "webhook"],
+            )
             if sms_func == "webhook":
-                sms_webhook = prompt_input("请输入短信验证码 webhook 地址", required=True)
+                sms_webhook = prompt_input(
+                    "请输入短信验证码 webhook 地址", required=True
+                )
 
         user_data = {
-                "user_type": user_type,
-                "password": password,
-                "pt_pin": pt_pin,
-                "force_update": force_update,
-                "auto_switch": auto_switch
+            "user_type": user_type,
+            "password": password,
+            "pt_pin": pt_pin,
+            "force_update": force_update,
+            "auto_switch": auto_switch,
         }
         if individual_sms:
             user_data["sms_func"] = sms_func
@@ -80,15 +87,17 @@ def collect_qinglong_data():
         password = prompt_input("青龙密码 (可选)")
         if (client_id and client_secret) or token or (username and password):
             break
-        print("⚠️  必须填写以下认证方式之一：client_id+client_secret、token、用户名+密码")
+        print(
+            "⚠️  必须填写以下认证方式之一：client_id+client_secret、token、用户名+密码"
+        )
     qinglong_data = {
         "url": url,
         "client_id": client_id if client_id else "",
         "client_secret": client_secret if client_secret else "",
         "token": token if token else "",
         "username": username if username else "",
-        "password": password if password else ""
-     }
+        "password": password if password else "",
+    }
 
     return qinglong_data
 
@@ -125,7 +134,6 @@ def collect_send_info():
     return send_info
 
 
-
 def collect_proxy():
     print("\n================= 配置代理 =================")
     server = prompt_input("代理服务器地址 (如 http://127.0.0.1:7890，留空则不使用代理)")
@@ -133,9 +141,7 @@ def collect_proxy():
         return None
     username = prompt_input("代理服务器用户名 (可选)")
     password = prompt_input("代理服务器密码 (可选)")
-    proxy = {
-        "server": server
-    }
+    proxy = {"server": server}
     if username:
         proxy["username"] = username
     if password:
@@ -143,11 +149,24 @@ def collect_proxy():
     return proxy
 
 
-def write_config(user_datas, qinglong_data, headless, cron_expression, is_send_msg, is_send_success_msg,
-                 is_send_fail_msg, send_info, sms_func, voice_func, proxy, user_agent, enable_desensitize):
+def write_config(
+    user_datas,
+    qinglong_data,
+    headless,
+    cron_expression,
+    is_send_msg,
+    is_send_success_msg,
+    is_send_fail_msg,
+    send_info,
+    sms_func,
+    voice_func,
+    proxy,
+    user_agent,
+    enable_desensitize,
+):
     if os.path.exists("config.py"):
         print("\n------------------- 文件存在 -------------------")
-        overwrite = prompt_yes_no("检测到已有 config.py，是否覆盖？", default='n')
+        overwrite = prompt_yes_no("检测到已有 config.py，是否覆盖？", default="n")
         if not overwrite:
             print("⚠️  已取消生成 config.py")
             return
@@ -205,34 +224,55 @@ def main():
     qinglong_data = collect_qinglong_data()
 
     print("\n================= 配置全局参数 =================")
-    headless = prompt_yes_no("是否启用无头模式？(默认启用)", default='y')
-    cron_expression = prompt_input("定时任务 Cron 表达式", default="15 0 * * *", required=True)
+    headless = prompt_yes_no("是否启用无头模式？(默认启用)", default="y")
+    cron_expression = prompt_input(
+        "定时任务 Cron 表达式", default="15 0 * * *", required=True
+    )
 
     print("\n================= 配置消息通知 =================")
-    is_send_msg = prompt_yes_no("是否启用消息通知？(默认为n)", default='n')
+    is_send_msg = prompt_yes_no("是否启用消息通知？(默认为n)", default="n")
     is_send_success_msg = False
     is_send_fail_msg = False
     send_info = {}
     if is_send_msg:
-        is_send_success_msg = prompt_yes_no("更新成功后通知？", default='y')
-        is_send_fail_msg = prompt_yes_no("更新失败后通知？", default='y')
+        is_send_success_msg = prompt_yes_no("更新成功后通知？", default="y")
+        is_send_fail_msg = prompt_yes_no("更新失败后通知？", default="y")
         send_info = collect_send_info()
 
     print("\n================= 配置短信验证码方式 =================")
-    sms_func = prompt_input("全局短信验证码处理方式 (no/manual_input/webhook)", default="manual_input", choices=["no", "manual_input", "webhook"])
-
-    print("\n================= 其它配置 =================")
-    voice_func = prompt_input("语音验证码处理方式 (no/manual_input)", default="no", choices=["no", "manual_input"])
-    proxy = collect_proxy()
-    user_agent = prompt_input("User-Agent (留空使用默认)")
-    enable_desensitize = prompt_yes_no("是否启用日志和发送消息脱敏？(默认不开启)", default='n')
-
-    write_config(
-        user_datas, qinglong_data, headless, cron_expression,
-        is_send_msg, is_send_success_msg, is_send_fail_msg,
-        send_info, sms_func, voice_func, proxy, user_agent, enable_desensitize
+    sms_func = prompt_input(
+        "全局短信验证码处理方式 (no/manual_input/webhook)",
+        default="manual_input",
+        choices=["no", "manual_input", "webhook"],
     )
 
+    print("\n================= 其它配置 =================")
+    voice_func = prompt_input(
+        "语音验证码处理方式 (no/manual_input)",
+        default="no",
+        choices=["no", "manual_input"],
+    )
+    proxy = collect_proxy()
+    user_agent = prompt_input("User-Agent (留空使用默认)")
+    enable_desensitize = prompt_yes_no(
+        "是否启用日志和发送消息脱敏？(默认不开启)", default="n"
+    )
+
+    write_config(
+        user_datas,
+        qinglong_data,
+        headless,
+        cron_expression,
+        is_send_msg,
+        is_send_success_msg,
+        is_send_fail_msg,
+        send_info,
+        sms_func,
+        voice_func,
+        proxy,
+        user_agent,
+        enable_desensitize,
+    )
 
 
 if __name__ == "__main__":

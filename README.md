@@ -32,6 +32,7 @@ docker run -i \
 - 支持windows,linux(无GUI)
 - 支持docker部署
 - 支持代理
+- 支持Web管理界面
 - linux无GUI使用文档请转向 [linux无GUI使用文档](https://github.com/icepage/AutoUpdateJdCookie/blob/main/README.linux.md)
 - WINDOWS整体效果如下图
 
@@ -39,7 +40,80 @@ docker run -i \
 
 
 ## 使用文档
-## 1、docker部署(推荐)
+
+### 1、Docker Compose部署（推荐）
+
+使用Docker Compose可以简化部署流程，同时管理Web界面和定时任务。
+
+#### 1.1 准备工作
+
+1. 克隆项目到本地
+   ```bash
+   git clone https://github.com/icepage/AutoUpdateJdCookie.git
+   cd AutoUpdateJdCookie
+   ```
+
+2. 生成配置文件
+   ```bash
+   docker run -i --rm \
+     -v $PWD/config.py:/app/config.py \
+     icepage/aujc python make_config.py
+   ```
+
+3. 配置文件说明
+   - 执行`make_config.py`后，会生成`config.py`文件
+   - 详细配置说明请参考 [配置文件说明](https://github.com/icepage/AutoUpdateJdCookie/blob/main/配置文件说明.md)
+   - Linux的**无头模式(headless)一定要设为True!!!!**
+
+#### 1.2 启动服务
+
+1. 使用Docker Compose启动服务
+   ```bash
+   docker-compose up -d
+   ```
+
+2. 查看服务状态
+   ```bash
+   docker-compose ps
+   ```
+
+3. 查看日志
+   ```bash
+   # 查看Web服务日志
+   docker-compose logs -f app
+   
+   # 查看定时任务日志
+   docker-compose logs -f scheduler
+   ```
+
+4. 停止服务
+   ```bash
+   docker-compose down
+   ```
+
+#### 1.3 访问Web管理界面
+
+服务启动后，可以通过以下地址访问Web管理界面：
+
+```
+http://<服务器IP>:8686
+```
+
+Web管理界面提供了以下功能：
+- 查看系统状态
+- 管理账号配置
+- 查看任务日志
+- 手动触发更新任务
+
+### 1.4 自定义配置
+
+可以通过修改`docker-compose.yml`文件来自定义配置：
+
+- **端口映射**：默认映射到宿主机8686端口，可以根据需要修改
+- **环境变量**：可以通过环境变量覆盖配置文件中的设置
+- **挂载卷**：可以挂载自定义的模型文件和配置文件
+
+### 2、传统Docker部署
 
 ### 下载镜像
 ```shell
@@ -81,7 +155,7 @@ docker run -i -v $PWD/config.py:/app/config.py icepage/aujc:latest python main.p
 docker run -v $PWD/config.py:/app/config.py icepage/aujc:latest
 ```
 
-## 2、青龙 Debian 容器内一键安装
+## 3、青龙 Debian 容器内一键安装
 
 - 仅测试 **whyour/qinglong:debian**
 - 支持 ARM64 和 AMD64 架构
@@ -90,7 +164,7 @@ bash <(curl -fsSL "https://raw.githubusercontent.com/icepage/AutoUpdateJdCookie/
 ````
 
 
-## 3、本地部署
+## 4、本地部署
 ### 安装依赖
 ```commandline
 pip install -r requirements.txt

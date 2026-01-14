@@ -34,6 +34,7 @@ class OcrEngine:
     def _init_ddddocr(self):
         try:
             import ddddocr
+
             self._engine = ddddocr.DdddOcr(det=True, show_ad=False)
             logger.info("ddddocr引擎初始化成功")
         except ImportError:
@@ -43,11 +44,9 @@ class OcrEngine:
     def _init_paddleocr(self):
         try:
             from paddleocr import PaddleOCR
+
             self._engine = PaddleOCR(
-                use_angle_cls=True,
-                lang='ch',
-                use_gpu=False,
-                show_log=False
+                use_angle_cls=True, lang="ch", use_gpu=False, show_log=False
             )
             logger.info("PaddleOCR引擎初始化成功")
         except ImportError:
@@ -63,7 +62,7 @@ class OcrEngine:
             return self._detect_ddddocr(image)
 
     def _detect_ddddocr(self, image: np.ndarray) -> list:
-        _, buffer = cv2.imencode('.jpg', image)
+        _, buffer = cv2.imencode(".jpg", image)
         image_bytes = buffer.tobytes()
         return self._engine.detection(image_bytes)
 
@@ -87,7 +86,7 @@ class OcrEngine:
             return self._classify_ddddocr(image)
 
     def _classify_ddddocr(self, image: np.ndarray) -> str:
-        _, buffer = cv2.imencode('.jpg', image)
+        _, buffer = cv2.imencode(".jpg", image)
         image_bytes = buffer.tobytes()
         return self._engine.classification(image_bytes, png_fix=True)
 
@@ -97,17 +96,22 @@ class OcrEngine:
             return result[0][0][0]
         return ""
 
-    def slide_match(self, target: np.ndarray, background: np.ndarray, simple_target: bool = True) -> Dict[str, Any]:
+    def slide_match(
+        self, target: np.ndarray, background: np.ndarray, simple_target: bool = True
+    ) -> Dict[str, Any]:
         if self.engine_type == "ddddocr":
             return self._slide_match_ddddocr(target, background, simple_target)
         else:
             return self._slide_match_ddddocr(target, background, simple_target)
 
-    def _slide_match_ddddocr(self, target: np.ndarray, background: np.ndarray, simple_target: bool) -> Dict[str, Any]:
+    def _slide_match_ddddocr(
+        self, target: np.ndarray, background: np.ndarray, simple_target: bool
+    ) -> Dict[str, Any]:
         import ddddocr
-        _, target_buffer = cv2.imencode('.jpg', target)
+
+        _, target_buffer = cv2.imencode(".jpg", target)
         target_bytes = target_buffer.tobytes()
-        _, bg_buffer = cv2.imencode('.jpg', background)
+        _, bg_buffer = cv2.imencode(".jpg", background)
         bg_bytes = bg_buffer.tobytes()
         det = ddddocr.DdddOcr(det=False, ocr=False, show_ad=False)
         return det.slide_match(target_bytes, bg_bytes, simple_target=simple_target)
@@ -123,6 +127,7 @@ class OcrEngineFactory:
         engines = ["ddddocr"]
         try:
             from paddleocr import PaddleOCR
+
             engines.append("paddleocr")
         except ImportError:
             pass

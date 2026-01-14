@@ -15,7 +15,8 @@ from typing import Dict, Any
 from utils.consts import supported_colors
 from typing import Union, List
 
-def get_tmp_dir(tmp_dir:str = './tmp'):
+
+def get_tmp_dir(tmp_dir: str = "./tmp"):
     # 检查并创建 tmp 目录（如果不存在）
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
@@ -26,9 +27,9 @@ def ddddocr_find_files_pic(target_file, background_file) -> int:
     """
     比对文件获取滚动长度
     """
-    with open(target_file, 'rb') as f:
+    with open(target_file, "rb") as f:
         target_bytes = f.read()
-    with open(background_file, 'rb') as f:
+    with open(background_file, "rb") as f:
         background_bytes = f.read()
     target = ddddocr_find_bytes_pic(target_bytes, background_bytes)
     return target
@@ -40,14 +41,14 @@ def ddddocr_find_bytes_pic(target_bytes, background_bytes) -> int:
     """
     det = ddddocr.DdddOcr(det=False, ocr=False, show_ad=False)
     res = det.slide_match(target_bytes, background_bytes, simple_target=True)
-    return res['target'][0]
+    return res["target"][0]
 
 
 def get_img_bytes(img_src: str) -> bytes:
     """
     获取图片的bytes
     """
-    img_base64 = re.search(r'base64,(.*)', img_src)
+    img_base64 = re.search(r"base64,(.*)", img_src)
     if img_base64:
         base64_code = img_base64.group(1)
         # print("提取的Base64编码:", base64_code)
@@ -64,7 +65,7 @@ def get_ocr(**kwargs):
 
 def save_img(img_name, img_bytes):
     tmp_dir = get_tmp_dir()
-    img_path = os.path.join(tmp_dir, f'{img_name}.png')
+    img_path = os.path.join(tmp_dir, f"{img_name}.png")
     # with open(img_path, 'wb') as file:
     #     file.write(img_bytes)
     # 使用 Pillow 打开图像
@@ -94,8 +95,8 @@ def get_forbidden_users_dict(users_list: list, user_datas: dict) -> dict:
     users_dict = {}
     for info in users_list:
         for key in user_datas:
-            user_pt_pin = user_datas[key]['pt_pin']
-            if user_pt_pin == extract_pt_pin(info['value']):
+            user_pt_pin = user_datas[key]["pt_pin"]
+            if user_pt_pin == extract_pt_pin(info["value"]):
                 users_dict[key] = info
                 break
     return users_dict
@@ -146,8 +147,8 @@ async def solve_slider_captcha(page, slider, distance, slide_difference):
     box = await slider.bounding_box()
 
     # 计算滑块的中心坐标
-    from_x = box['x'] + box['width'] / 2
-    to_y = from_y = box['y'] + box['height'] / 2
+    from_x = box["x"] + box["width"] / 2
+    to_y = from_y = box["y"] + box["height"] / 2
 
     # 模拟按住滑块
     await page.mouse.move(from_x, from_y)
@@ -165,13 +166,20 @@ async def new_solve_slider_captcha(page, slider, distance, slide_difference):
     # 等待滑块元素出现
     distance = distance + slide_difference
     box = await slider.bounding_box()
-    await page.mouse.move(box['x'] + 10 , box['y'] + 10)
+    await page.mouse.move(box["x"] + 10, box["y"] + 10)
     await page.mouse.down()  # 模拟鼠标按下
-    await page.mouse.move(box['x'] + distance + random.uniform(8, 10), box['y'], steps=5)  # 模拟鼠标拖动，考虑到实际操作中可能存在的轻微误差和波动，加入随机偏移量
-    await asyncio.sleep(random.randint(1, 5) / 10)  # 随机等待一段时间，模仿人类操作的不确定性
-    await page.mouse.move(box['x'] + distance, box['y'], steps=10)  # 继续拖动滑块到目标位置
+    await page.mouse.move(
+        box["x"] + distance + random.uniform(8, 10), box["y"], steps=5
+    )  # 模拟鼠标拖动，考虑到实际操作中可能存在的轻微误差和波动，加入随机偏移量
+    await asyncio.sleep(
+        random.randint(1, 5) / 10
+    )  # 随机等待一段时间，模仿人类操作的不确定性
+    await page.mouse.move(
+        box["x"] + distance, box["y"], steps=10
+    )  # 继续拖动滑块到目标位置
     await page.mouse.up()  # 模拟鼠标释放，完成滑块拖动
     await asyncio.sleep(3)  # 等待3秒，等待滑块验证结果
+
 
 def sort_rectangle_vertices(vertices):
     """
@@ -206,7 +214,9 @@ def get_shape_location_by_type(img_path, type: str):
     imgGray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)  # 转灰度图
     imgBlur = cv2.GaussianBlur(imgGray, (5, 5), 1)  # 高斯模糊
     imgCanny = cv2.Canny(imgBlur, 60, 60)  # Canny算子边缘检测
-    contours, hierarchy = cv2.findContours(imgCanny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)  # 寻找轮廓点
+    contours, hierarchy = cv2.findContours(
+        imgCanny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+    )  # 寻找轮廓点
     for obj in contours:
         perimeter = cv2.arcLength(obj, True)  # 计算轮廓周长
         approx = cv2.approxPolyDP(obj, 0.02 * perimeter, True)  # 获取轮廓角点坐标
@@ -275,7 +285,7 @@ def get_shape_location_by_color(img_path, target_color):
     return None, None
 
 
-def rgba2rgb(img_name, rgba_img_path, tmp_dir: str = './tmp'):
+def rgba2rgb(img_name, rgba_img_path, tmp_dir: str = "./tmp"):
     """
     rgba图片转rgb
     """
@@ -321,11 +331,15 @@ async def send_msg(send_api, send_type: int, msg: str):
     读取配置文件，调用send_call_method发消息
     """
     from config import is_send_msg
+
     if not is_send_msg:
         return
 
     from config import send_info, is_send_success_msg, is_send_fail_msg
-    if (send_type == SendType.success.value and is_send_success_msg) or (send_type == SendType.fail.value and is_send_fail_msg):
+
+    if (send_type == SendType.success.value and is_send_success_msg) or (
+        send_type == SendType.fail.value and is_send_fail_msg
+    ):
         for key in send_info:
             for url in send_info[key]:
                 rep = await send_call_method(send_api, key, url, msg)
@@ -349,19 +363,27 @@ def expand_coordinates(x1, y1, x2, y2, N):
     return new_x1, new_y1, new_x2, new_y2
 
 
-def cv2_save_img(img_name, img, tmp_dir:str = './tmp'):
+def cv2_save_img(img_name, img, tmp_dir: str = "./tmp"):
     tmp_dir = get_tmp_dir(tmp_dir)
-    img_path = os.path.join(tmp_dir, f'{img_name}.png')
+    img_path = os.path.join(tmp_dir, f"{img_name}.png")
     cv2.imwrite(img_path, img)
     return img_path
 
 
-async def send_request(url: str, method: str, headers: Dict[str, Any], data: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
+async def send_request(
+    url: str,
+    method: str,
+    headers: Dict[str, Any],
+    data: Dict[str, Any] = None,
+    **kwargs,
+) -> Dict[str, Any]:
     """
     发请求的通用方法
     """
     async with aiohttp.ClientSession() as session:
-        async with session.request(method, url=url, json=data, headers=headers, **kwargs) as response:
+        async with session.request(
+            method, url=url, json=data, headers=headers, **kwargs
+        ) as response:
             return await response.json()
 
 
@@ -379,11 +401,11 @@ def validate_proxy_config(proxy):
 
     # 使用正则表达式来检查 server 是否是有效的 URL
     url_pattern = re.compile(
-        r'^(http|https|socks5)://'
-        r'(?:(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,6}|'  # 域名
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'    # 或者IP地址
-        r'(?::\d+)?'                              # 可选端口
-        r'(?:/.*)?$'                              # 可选路径
+        r"^(http|https|socks5)://"
+        r"(?:(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,6}|"  # 域名
+        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # 或者IP地址
+        r"(?::\d+)?"  # 可选端口
+        r"(?:/.*)?$"  # 可选路径
     )
 
     if not server or not url_pattern.match(server):
@@ -427,11 +449,7 @@ def extract_pt_pin(value: str) -> Union[str, None]:
 
 
 def filter_cks(
-    env_data: List[Dict[str, Any]],
-    *,
-    status: int = None,
-    id: int = None,
-    **kwargs
+    env_data: List[Dict[str, Any]], *, status: int = None, id: int = None, **kwargs
 ) -> List[Dict[str, Any]]:
     """
     过滤env_data中符合条件的字典。
@@ -479,33 +497,35 @@ def desensitize_account(account, enable_desensitize=True):
     # 判断是否为手机号（假设手机号为11位数字）
     if account.isdigit() and len(account) == 11:
         # 手机号脱敏：前3后4，中间4位用*代替
-        return account[:3] + '****' + account[-4:]
+        return account[:3] + "****" + account[-4:]
 
     # 判断是否为QQ号（假设QQ号为5位以上数字）
     if account.isdigit() and len(account) >= 5:
         # QQ号脱敏：前2后2，中间用*代替
-        return account[:2] + '***' + account[-2:]
+        return account[:2] + "***" + account[-2:]
 
     # 如果不是手机号或QQ号，直接返回原账号
     return account
+
 
 def sanitize_header_value(value: str) -> str:
     """
     清除 HTTP 头部值中的换行符，防止 header 注入
     """
-    return value.replace('\n', '').replace('\r', '').strip()
+    return value.replace("\n", "").replace("\r", "").strip()
 
 
 def ddddocr_find_files_pic_v2(target_file, background_file) -> dict:
     """
     比对文件获取滚动长度
     """
-    with open(target_file, 'rb') as f:
+    with open(target_file, "rb") as f:
         target_bytes = f.read()
-    with open(background_file, 'rb') as f:
+    with open(background_file, "rb") as f:
         background_bytes = f.read()
     target = ddddocr_find_bytes_pic_v2(target_bytes, background_bytes)
     return target
+
 
 def ddddocr_find_bytes_pic_v2(target_bytes, background_bytes) -> dict:
     """
@@ -555,8 +575,7 @@ def crop_center_contour(image_path, output_path, min_area=100, padding=10):
     dilated = cv2.dilate(closed, kernel, iterations=1)
 
     # 找到所有轮廓
-    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL,
-                                   cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if not contours:
         # 未检测到任何轮廓
@@ -570,7 +589,7 @@ def crop_center_contour(image_path, output_path, min_area=100, padding=10):
         return None
 
     # 找到最接近中心的轮廓
-    min_distance = float('inf')
+    min_distance = float("inf")
     best_contour = None
     best_rect = None
 
@@ -583,8 +602,9 @@ def crop_center_contour(image_path, output_path, min_area=100, padding=10):
         contour_center_y = y + h // 2
 
         # 计算到图片中心的距离
-        distance = np.sqrt((contour_center_x - center_x) ** 2 +
-                           (contour_center_y - center_y) ** 2)
+        distance = np.sqrt(
+            (contour_center_x - center_x) ** 2 + (contour_center_y - center_y) ** 2
+        )
 
         if distance < min_distance:
             min_distance = distance
@@ -604,7 +624,7 @@ def crop_center_contour(image_path, output_path, min_area=100, padding=10):
     h = min(height - y, h + 2 * padding)
 
     # 裁剪图片
-    cropped = img[y:y + h, x:x + w]
+    cropped = img[y : y + h, x : x + w]
 
     # 保存结果
     cv2.imwrite(output_path, cropped)
