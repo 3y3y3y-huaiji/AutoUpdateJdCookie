@@ -28,7 +28,6 @@ from utils.tools import send_msg, filter_cks, extract_pt_pin, desensitize_accoun
 from core.login import get_jd_pt_key
 from core.captcha import auto_move_slide, auto_move_slide_v2, auto_shape
 
-logger.add(sink="main.log", level="DEBUG")
 
 # 账号是否脱敏的开关
 enable_desensitize = global_config.enable_desensitize
@@ -89,6 +88,7 @@ async def main(mode: str = None):
     """
     :param mode 运行模式, 当mode = cron时，sms_func为 manual_input时，将自动传成no
     """
+    qlapi = None
     try:
         qlapi = await get_ql_api(qinglong_data)
         send_api = SendApi("ql")
@@ -236,6 +236,9 @@ async def main(mode: str = None):
 
     except Exception as e:
         traceback.print_exc()
+    finally:
+        if qlapi:
+            await qlapi.close()
 
 
 def parse_args():

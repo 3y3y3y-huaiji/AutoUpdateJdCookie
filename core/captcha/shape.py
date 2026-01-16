@@ -12,7 +12,6 @@ import re
 import cv2
 from loguru import logger
 from utils.tools import (
-    get_ocr,
     save_img,
     get_img_bytes,
     get_shape_location_by_type,
@@ -22,8 +21,10 @@ from utils.tools import (
     cv2_save_img,
     get_tmp_dir,
     get_word,
+    ddddocr_find_files_pic,
 )
 from utils.consts import supported_types, supported_colors
+from utils.ocr_manager import get_ocr_manager
 
 
 async def auto_shape(page: Page, retry_times: int = 5):
@@ -35,17 +36,10 @@ async def auto_shape(page: Page, retry_times: int = 5):
         retry_times: 重试次数
     """
     logger.info("开始二次验证")
-    # 图像识别
-    ocr = get_ocr(beta=True)
-    # 文字识别
-    det = get_ocr(det=True)
-    # 自己训练的ocr, 提高文字识别度
-    my_ocr = get_ocr(
-        det=False,
-        ocr=False,
-        import_onnx_path="myocr_v1.onnx",
-        charsets_path="charsets.json",
-    )
+    ocr_manager = get_ocr_manager()
+    ocr = ocr_manager.get_ocr(beta=True)
+    det = ocr_manager.get_det()
+    my_ocr = ocr_manager.get_my_ocr()
 
     for i in range(retry_times + 1):
         try:
@@ -90,7 +84,7 @@ async def auto_shape(page: Page, retry_times: int = 5):
         # 图像识别的解法，东哥求放过啊，写不动了
         if page.locator("div.sp_msg.tip_text", has_text="请点击上图中的").is_visible():
             logger.info("检测为图像, 开始图像识别......")
-            from utils.tools import crop_center_contour, ddddocr_find_files_pic_v2
+            from utils.tools import crop_center_contour
 
             small_img_path = os.path.join(tmp_dir, f"small_img.png")
             # 这里是一个标准算法偏差
@@ -104,8 +98,8 @@ async def auto_shape(page: Page, retry_times: int = 5):
                 if result is None:
                     raise IndexError("截图异常")
                 # 获取要移动的长度
-                target_dict = ddddocr_find_files_pic_v2(
-                    small_img_path, background_img_path
+                target_dict = ddddocr_find_files_pic(
+                    small_img_path, background_img_path, return_dict=True
                 )
                 # 提取坐标
                 x1, y1, x2, y2 = target_dict["target"]

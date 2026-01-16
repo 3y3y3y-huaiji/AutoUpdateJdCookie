@@ -101,3 +101,15 @@ user_datas = get_account_configs()
 global_config = get_global_config()
 notification_config = get_notification_config()
 proxy_config = get_proxy_config()
+cron_expression = global_config.cron_expression
+is_send_msg = notification_config.is_send_msg
+is_send_success_msg = notification_config.is_send_success_msg
+is_send_fail_msg = notification_config.is_send_fail_msg
+send_info = {
+    "send_webhook": notification_config.send_webhook,
+    "send_wecom": notification_config.send_wecom,
+    "send_dingtalk": notification_config.send_dingtalk,
+    "send_feishu": notification_config.send_feishu,
+    "send_pushplus": notification_config.send_pushplus,
+    "send_serverchan": notification_config.send_serverchan,
+}

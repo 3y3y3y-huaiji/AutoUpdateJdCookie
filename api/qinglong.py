@@ -3,6 +3,7 @@ import aiohttp
 from enum import Enum
 from typing import Union
 from utils.tools import send_request
+from api.base_qinglong import BaseQlApi
 
 
 class QlUri(Enum):
@@ -19,19 +20,37 @@ class QlOpenUri(Enum):
     envs_disable = "open/envs/disable"
 
 
-class QlApi(object):
+class QlApi(BaseQlApi):
+    """
+    青龙面板API类
+    """
+
     def __init__(self, url: str):
-        self.token = None
-        self.url = url
-        self.headers = None
+        super().__init__(url, QlUri)
 
     def login_by_token(self, token: str):
+        """
+        使用token登录
+
+        Args:
+            token: 登录token
+        """
         headers = {"Content-Type": "application/json"}
         self.token = token
         headers["Authorization"] = self.token
         self.headers = headers
 
     async def login_by_username(self, user: str, password: str):
+        """
+        使用用户名密码登录
+
+        Args:
+            user: 用户名
+            password: 密码
+
+        Returns:
+            登录响应结果
+        """
         data = {"username": user, "password": password}
         headers = {"Content-Type": "application/json"}
         response = await send_request(
@@ -46,46 +65,26 @@ class QlApi(object):
             self.headers = headers
         return response
 
-    async def get_envs(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url=urljoin(self.url, QlUri.envs.value), headers=self.headers
-            ) as response:
-                return await response.json()
 
-    async def set_envs(self, data: Union[str, None] = None):
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                url=urljoin(self.url, QlUri.envs.value), data=data, headers=self.headers
-            ) as response:
-                return await response.json()
+class QlOpenApi(BaseQlApi):
+    """
+    青龙面板开放API类
+    """
 
-    async def envs_enable(self, data: bytes):
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                url=urljoin(self.url, QlUri.envs_enable.value),
-                data=data,
-                headers=self.headers,
-            ) as response:
-                return await response.json()
-
-    async def envs_disable(self, data: bytes):
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                url=urljoin(self.url, QlUri.envs_disable.value),
-                data=data,
-                headers=self.headers,
-            ) as response:
-                return await response.json()
-
-
-class QlOpenApi(object):
     def __init__(self, url: str):
-        self.token = None
-        self.url = url
-        self.headers = None
+        super().__init__(url, QlOpenUri)
 
     async def login(self, client_id: str, client_secret: str):
+        """
+        使用client_id和client_secret登录
+
+        Args:
+            client_id: 客户端ID
+            client_secret: 客户端密钥
+
+        Returns:
+            登录响应结果
+        """
         headers = {"Content-Type": "application/json"}
         params = {"client_id": client_id, "client_secret": client_secret}
         response = await send_request(
@@ -99,37 +98,3 @@ class QlOpenApi(object):
             headers["Authorization"] = self.token
             self.headers = headers
         return response
-
-    async def get_envs(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url=urljoin(self.url, QlOpenUri.envs.value), headers=self.headers
-            ) as response:
-                return await response.json()
-
-    async def set_envs(self, data: Union[str, None] = None):
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                url=urljoin(self.url, QlOpenUri.envs.value),
-                data=data,
-                headers=self.headers,
-            ) as response:
-                return await response.json()
-
-    async def envs_enable(self, data: bytes):
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                url=urljoin(self.url, QlOpenUri.envs_enable.value),
-                data=data,
-                headers=self.headers,
-            ) as response:
-                return await response.json()
-
-    async def envs_disable(self, data: bytes):
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                url=urljoin(self.url, QlOpenUri.envs_disable.value),
-                data=data,
-                headers=self.headers,
-            ) as response:
-                return await response.json()

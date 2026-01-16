@@ -19,21 +19,42 @@ def generate_sign(secret):
     return timestamp, sign
 
 
-async def send_message(url: str, data: Dict[str, Any]) -> Dict[str, Any]:
+async def send_message(url: str, data: Dict[str, Any], session: aiohttp.ClientSession) -> Dict[str, Any]:
     """
     发消息的通用方法
     """
     headers = {
         "Content-Type": "application/json",
     }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=data, headers=headers) as response:
-            return await response.json()
+    async with session.post(url, json=data, headers=headers) as response:
+        return await response.json()
 
 
 class SendApi(object):
     def __init__(self, name):
         self.name = name
+        self._session = None
+
+    async def _get_session(self):
+        """
+        获取或创建 aiohttp session
+        """
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def close(self):
+        """
+        关闭 session
+        """
+        if self._session and not self._session.closed:
+            await self._session.close()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
 
     @staticmethod
     async def send_webhook(url, msg):
@@ -41,7 +62,8 @@ class SendApi(object):
         webhook
         """
         data = {"content": msg}
-        return await send_message(url, data)
+        async with aiohttp.ClientSession() as session:
+            return await send_message(url, data, session)
 
     @staticmethod
     async def send_wecom(url, msg):
@@ -49,7 +71,8 @@ class SendApi(object):
         企业微信
         """
         data = {"msgtype": "text", "text": {"content": msg}}
-        return await send_message(url, data)
+        async with aiohttp.ClientSession() as session:
+            return await send_message(url, data, session)
 
     @staticmethod
     async def send_dingtalk(url: str, msg: str) -> Dict[str, Any]:
@@ -67,7 +90,8 @@ class SendApi(object):
             timestamp, sign = generate_sign(secret)
             url = f"{url}&timestamp={timestamp}&sign={sign}"
         data = {"msgtype": "text", "text": {"content": msg}}
-        return await send_message(url, data)
+        async with aiohttp.ClientSession() as session:
+            return await send_message(url, data, session)
 
     @staticmethod
     async def send_feishu(url: str, msg: str) -> Dict[str, Any]:
@@ -75,7 +99,8 @@ class SendApi(object):
         飞书
         """
         data = {"msg_type": "text", "content": {"text": msg}}
-        return await send_message(url, data)
+        async with aiohttp.ClientSession() as session:
+            return await send_message(url, data, session)
 
     @staticmethod
     async def send_pushplus(url: str, msg: str) -> Dict[str, Any]:
@@ -90,7 +115,8 @@ class SendApi(object):
             Dict[str, Any]: 返回发送消息的结果。
         """
         data = {"content": msg}
-        return await send_message(url, data)
+        async with aiohttp.ClientSession() as session:
+            return await send_message(url, data, session)
 
     @staticmethod
     async def send_serverchan(url: str, msg: str) -> Dict[str, Any]:
@@ -105,4 +131,5 @@ class SendApi(object):
             Dict[str, Any]: 返回发送消息的结果。
         """
         data = {"title": "自动更新京东Cookie通知", "desp": msg}
-        return await send_message(url, data)
+        async with aiohttp.ClientSession() as session:
+            return await send_message(url, data, session)

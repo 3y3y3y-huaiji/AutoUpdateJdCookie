@@ -6,6 +6,7 @@
 
 from playwright.async_api import Playwright, Page
 import asyncio
+import random
 from loguru import logger
 from typing import Union, Optional
 import traceback

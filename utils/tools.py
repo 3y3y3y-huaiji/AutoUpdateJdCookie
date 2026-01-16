@@ -11,9 +11,8 @@ import random
 import os
 from PIL import Image
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Union, List
 from utils.consts import supported_colors
-from typing import Union, List
 
 
 def get_tmp_dir(tmp_dir: str = "./tmp"):
@@ -23,24 +22,43 @@ def get_tmp_dir(tmp_dir: str = "./tmp"):
     return tmp_dir
 
 
-def ddddocr_find_files_pic(target_file, background_file) -> int:
+def ddddocr_find_files_pic(target_file, background_file, return_dict: bool = False) -> Union[int, dict]:
     """
     比对文件获取滚动长度
+
+    Args:
+        target_file: 目标图片文件路径
+        background_file: 背景图片文件路径
+        return_dict: 是否返回完整结果字典
+
+    Returns:
+        int: 滚动长度（默认）
+        dict: 完整结果字典（当return_dict=True时）
     """
     with open(target_file, "rb") as f:
         target_bytes = f.read()
     with open(background_file, "rb") as f:
         background_bytes = f.read()
-    target = ddddocr_find_bytes_pic(target_bytes, background_bytes)
-    return target
+    return ddddocr_find_bytes_pic(target_bytes, background_bytes, return_dict)
 
 
-def ddddocr_find_bytes_pic(target_bytes, background_bytes) -> int:
+def ddddocr_find_bytes_pic(target_bytes, background_bytes, return_dict: bool = False) -> Union[int, dict]:
     """
     比对bytes获取滚动长度
+
+    Args:
+        target_bytes: 目标图片字节数据
+        background_bytes: 背景图片字节数据
+        return_dict: 是否返回完整结果字典
+
+    Returns:
+        int: 滚动长度（默认）
+        dict: 完整结果字典（当return_dict=True时）
     """
     det = ddddocr.DdddOcr(det=False, ocr=False, show_ad=False)
     res = det.slide_match(target_bytes, background_bytes, simple_target=True)
+    if return_dict:
+        return res
     return res["target"][0]
 
 
@@ -51,12 +69,10 @@ def get_img_bytes(img_src: str) -> bytes:
     img_base64 = re.search(r"base64,(.*)", img_src)
     if img_base64:
         base64_code = img_base64.group(1)
-        # print("提取的Base64编码:", base64_code)
-        # 解码Base64字符串
         img_bytes = base64.b64decode(base64_code)
         return img_bytes
     else:
-        raise "image is empty"
+        raise Exception("image is empty")
 
 
 def get_ocr(**kwargs):
@@ -513,27 +529,6 @@ def sanitize_header_value(value: str) -> str:
     清除 HTTP 头部值中的换行符，防止 header 注入
     """
     return value.replace("\n", "").replace("\r", "").strip()
-
-
-def ddddocr_find_files_pic_v2(target_file, background_file) -> dict:
-    """
-    比对文件获取滚动长度
-    """
-    with open(target_file, "rb") as f:
-        target_bytes = f.read()
-    with open(background_file, "rb") as f:
-        background_bytes = f.read()
-    target = ddddocr_find_bytes_pic_v2(target_bytes, background_bytes)
-    return target
-
-
-def ddddocr_find_bytes_pic_v2(target_bytes, background_bytes) -> dict:
-    """
-    比对bytes获取获取整个target列表
-    """
-    det = ddddocr.DdddOcr(det=False, ocr=False, show_ad=False)
-    res = det.slide_match(target_bytes, background_bytes, simple_target=True)
-    return res
 
 
 def crop_center_contour(image_path, output_path, min_area=100, padding=10):
