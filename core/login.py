@@ -258,6 +258,9 @@ async def get_jd_pt_key(
     browser = await playwright.chromium.launch(
         headless=headless, args=args, proxy=proxy
     )
+    
+    desensitized_user = desensitize_account(user, global_config.enable_desensitize)
+    
     try:
         # 使用配置的UA或默认UA
         user_agent = global_config.user_agent or default_user_agent
@@ -266,124 +269,239 @@ async def get_jd_pt_key(
         try:
             page = await context.new_page()
             await page.set_viewport_size({"width": 360, "height": 640})
-            await page.goto(jd_login_url)
+            
+            # 添加页面异常处理
+            page.on("pageerror", lambda error: logger.error(f"页面错误: {error}"))
+            page.on("requestfailed", lambda request: logger.warning(f"请求失败: {request.url} - {request.failure}"))
+            
+            logger.info(f"开始登录京东，访问登录页面: {jd_login_url}")
+            await page.goto(jd_login_url, wait_until="networkidle", timeout=30000)
 
             if user_type == "qq":
-                await page.get_by_role("checkbox").check()
-                await asyncio.sleep(1)
+                await page.get_by_role("checkbox").check(timeout=5000)
+                await asyncio.sleep(random.uniform(0.5, 1.5))
+                
                 # 点击QQ登录
-                await page.locator("a.quick-qq").click()
-                await asyncio.sleep(1)
+                qq_login_locators = ["a.quick-qq", ".qq-login-btn", "[data-type='qq']"]
+                qq_login_found = False
+                for qq_loc in qq_login_locators:
+                    if await page.locator(qq_loc).count() > 0:
+                        await page.locator(qq_loc).click()
+                        qq_login_found = True
+                        break
+                
+                if not qq_login_found:
+                    logger.error(f"{desensitized_user} 未找到QQ登录按钮")
+                    return None
+                    
+                await asyncio.sleep(random.uniform(1, 2))
 
                 # 等待 iframe 加载完成
-                await page.wait_for_selector("#ptlogin_iframe")
+                await page.wait_for_selector("#ptlogin_iframe", state="visible", timeout=10000)
                 # 切换到 iframe
                 iframe = page.frame(name="ptlogin_iframe")
+                if not iframe:
+                    logger.error(f"{desensitized_user} 未找到登录iframe")
+                    return None
 
                 # 通过 id 选择 "密码登录" 链接并点击
-                await iframe.locator("#switcher_plogin").click()
-                await asyncio.sleep(1)
+                try:
+                    await iframe.locator("#switcher_plogin").click(timeout=5000)
+                    await asyncio.sleep(random.uniform(1, 2))
+                except Exception as e:
+                    logger.warning(f"{desensitized_user} 点击密码登录失败，可能已在密码登录页面: {e}")
+                    
                 # 填写账号
                 username_input = iframe.locator("#u")
+                if await username_input.count() == 0:
+                    logger.error(f"{desensitized_user} 未找到QQ账号输入框")
+                    return None
+                    
                 for u in user:
                     await username_input.type(u, no_wait_after=True)
                     await asyncio.sleep(random.random() / 10)
-                await asyncio.sleep(1)
+                await asyncio.sleep(random.uniform(0.5, 1.5))
+                
                 # 填写密码
                 password_input = iframe.locator("#p")
+                if await password_input.count() == 0:
+                    logger.error(f"{desensitized_user} 未找到QQ密码输入框")
+                    return None
+                    
                 for p in password:
                     await password_input.type(p, no_wait_after=True)
                     await asyncio.sleep(random.random() / 10)
-                await asyncio.sleep(1)
+                await asyncio.sleep(random.uniform(0.5, 1.5))
+                
                 # 点击登录按钮
-                await iframe.locator("#login_button").click()
-                await asyncio.sleep(1)
+                login_button = iframe.locator("#login_button")
+                if await login_button.count() == 0:
+                    logger.error(f"{desensitized_user} 未找到QQ登录按钮")
+                    return None
+                    
+                await login_button.click()
+                await asyncio.sleep(random.uniform(1, 3))
+                
                 # 这里检测安全验证
-                new_vcode_area = iframe.locator("div#newVcodeArea")
-                style = await new_vcode_area.get_attribute("style")
-                if style and "display: block" in style:
-                    if (
-                        await new_vcode_area.get_by_text("安全验证").text_content()
-                        == "安全验证"
-                    ):
-                        logger.error(
-                            f"QQ号{user}需要安全验证, 登录失败，请使用其它账号类型"
-                        )
-                        raise Exception(
-                            f"QQ号{user}需要安全验证, 登录失败，请使用其它账号类型"
-                        )
+                try:
+                    new_vcode_area = iframe.locator("div#newVcodeArea")
+                    style = await new_vcode_area.get_attribute("style")
+                    if style and "display: block" in style:
+                        if await new_vcode_area.get_by_text("安全验证").count() > 0:
+                            logger.error(
+                                f"{desensitized_user} QQ号需要安全验证, 登录失败，请使用其它账号类型"
+                            )
+                            raise Exception(
+                                f"QQ号{desensitized_user}需要安全验证, 登录失败，请使用其它账号类型"
+                            )
+                except Exception as e:
+                    logger.warning(f"{desensitized_user} 检测QQ安全验证失败: {e}")
 
             else:
-                await page.get_by_text("账号密码登录").click()
+                try:
+                    # 尝试多种登录方式选择器
+                    login_method_selectors = [
+                        "text=账号密码登录", ".account-login-btn", "[data-type='account']"
+                    ]
+                    
+                    for selector in login_method_selectors:
+                        if await page.locator(selector).count() > 0:
+                            await page.locator(selector).click(timeout=5000)
+                            break
+                    await asyncio.sleep(random.uniform(0.5, 1.5))
+                except Exception as e:
+                    logger.warning(f"{desensitized_user} 切换账号密码登录失败，可能已在账号密码登录页面: {e}")
 
+                # 填写账号
                 username_input = page.locator("#username")
+                if await username_input.count() == 0:
+                    logger.error(f"{desensitized_user} 未找到账号输入框")
+                    return None
+                    
                 for u in user:
                     await username_input.type(u, no_wait_after=True)
                     await asyncio.sleep(random.random() / 10)
+                await asyncio.sleep(random.uniform(0.5, 1.5))
 
+                # 填写密码
                 password_input = page.locator("#pwd")
+                if await password_input.count() == 0:
+                    logger.error(f"{desensitized_user} 未找到密码输入框")
+                    return None
+                    
                 for p in password:
                     await password_input.type(p, no_wait_after=True)
                     await asyncio.sleep(random.random() / 10)
+                await asyncio.sleep(random.uniform(0.5, 1.5))
 
-                await asyncio.sleep(random.random())
-                await page.locator(".policy_tip-checkbox").click()
-                await asyncio.sleep(random.random())
-                await page.locator(".btn.J_ping.active").click()
+                # 勾选协议
+                try:
+                    policy_checkbox = page.locator(".policy_tip-checkbox")
+                    if await policy_checkbox.count() > 0:
+                        await policy_checkbox.click()
+                        await asyncio.sleep(random.uniform(0.3, 0.8))
+                except Exception as e:
+                    logger.warning(f"{desensitized_user} 勾选协议失败，可能已勾选: {e}")
+
+                # 点击登录按钮
+                login_button = page.locator(".btn.J_ping.active")
+                if await login_button.count() == 0:
+                    login_button = page.locator(".login-btn")
+                
+                if await login_button.count() == 0:
+                    logger.error(f"{desensitized_user} 未找到登录按钮")
+                    return None
+                    
+                await login_button.click()
+                await page.wait_for_load_state("networkidle", timeout=10000)
 
                 if auto_switch:
-                    # 自动识别移动滑块验证码
-                    await asyncio.sleep(1)
-                    await auto_move_slide(page, retry_times=30)
+                    try:
+                        # 自动识别移动滑块验证码
+                        await asyncio.sleep(random.uniform(0.5, 1.5))
+                        await auto_move_slide(page, retry_times=30)
 
-                    # 自动验证形状验证码
-                    await asyncio.sleep(1)
-                    await auto_shape(page, retry_times=30)
+                        # 自动验证形状验证码
+                        await asyncio.sleep(random.uniform(0.5, 1.5))
+                        await auto_shape(page, retry_times=30)
+                        await page.wait_for_load_state("networkidle", timeout=10000)
 
-                    # 进行短信验证识别
-                    await asyncio.sleep(1)
-                    if await page.locator('text="手机短信验证"').count() != 0:
-                        logger.info("开始短信验证码识别环节")
-                        await sms_recognition(page, user, mode, sms_func, sms_webhook)
+                        # 进行短信验证识别
+                        await asyncio.sleep(random.uniform(0.5, 1.5))
+                        if await page.locator('text="手机短信验证"').count() != 0:
+                            logger.info(f"{desensitized_user} 开始短信验证码识别环节")
+                            await sms_recognition(page, user, mode, sms_func, sms_webhook)
+                            await page.wait_for_load_state("networkidle", timeout=10000)
 
-                    # 进行手机语音验证识别
-                    if (
-                        await page.locator(
-                            'div#header .text-header:has-text("手机语音验证")'
-                        ).count()
-                        > 0
-                    ):
-                        logger.info("检测到手机语音验证页面,开始识别")
-                        await voice_verification(page, user, mode, voice_func)
+                        # 进行手机语音验证识别
+                        if (
+                            await page.locator(
+                                'div#header .text-header:has-text("手机语音验证")'
+                            ).count()
+                            > 0
+                        ):
+                            logger.info(f"{desensitized_user} 检测到手机语音验证页面,开始识别")
+                            await voice_verification(page, user, mode, voice_func)
+                            await page.wait_for_load_state("networkidle", timeout=10000)
 
-                    # 弹窗检测
-                    await check_dialog(page)
+                        # 弹窗检测
+                        await check_dialog(page)
 
-                    # 检查警告,如账号存在风险或账密不正确等
-                    await check_notice(page)
+                        # 检查警告,如账号存在风险或账密不正确等
+                        await check_notice(page)
+                        await page.wait_for_load_state("networkidle", timeout=10000)
+                        
+                    except Exception as e:
+                        logger.error(f"{desensitized_user} 验证码处理失败: {e}")
+                        traceback.print_exc()
+                        return None
 
                 else:
                     logger.info("自动过验证码开关已关, 请手动操作")
+                    await page.wait_for_timeout(60000)  # 给用户足够时间手动操作
 
-            # 等待验证码通过
-            logger.info("等待获取cookie...")
-            await page.wait_for_selector(
-                "#msShortcutMenu", state="visible", timeout=120000
-            )
-
+            # 等待验证码通过和页面加载完成
+            logger.info(f"{desensitized_user} 等待获取cookie...")
+            
+            # 尝试多种成功标识
+            success_selectors = [
+                "#msShortcutMenu", ".user-avatar", "#J_UserInfo", ".nickname"
+            ]
+            success_found = False
+            
+            for selector in success_selectors:
+                try:
+                    await page.wait_for_selector(selector, state="visible", timeout=120000)
+                    success_found = True
+                    logger.info(f"{desensitized_user} 登录成功标识找到: {selector}")
+                    break
+                except Exception:
+                    continue
+            
+            if not success_found:
+                logger.warning(f"{desensitized_user} 未找到登录成功标识，尝试直接获取cookie")
+            
+            # 获取所有cookie
             cookies = await context.cookies()
             for cookie in cookies:
                 if cookie["name"] == "pt_key":
                     pt_key = cookie["value"]
+                    logger.info(f"{desensitized_user} 成功获取到pt_key")
                     return pt_key
 
+            logger.warning(f"{desensitized_user} 未在cookie中找到pt_key")
             return None
 
         except Exception as e:
+            logger.error(f"{desensitized_user} 登录过程中发生错误: {e}")
             traceback.print_exc()
             return None
 
         finally:
             await context.close()
+    except Exception as e:
+        logger.error(f"{desensitized_user} 浏览器操作过程中发生错误: {e}")
+        traceback.print_exc()
+        return None
     finally:
         await browser.close()

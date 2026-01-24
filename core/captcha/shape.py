@@ -60,15 +60,43 @@ async def auto_shape(page: Page, retry_times: int = 5):
         tmp_dir = get_tmp_dir()
 
         background_img_path = os.path.join(tmp_dir, f"background_img.png")
-        # 获取大图元素
-        background_locator = page.locator("#cpc_img")
-        # 获取元素的位置和尺寸
-        backend_bounding_box = await background_locator.bounding_box()
-        backend_top_left_x = backend_bounding_box["x"]
-        backend_top_left_y = backend_bounding_box["y"]
+        # 获取大图元素，尝试多种选择器
+        background_locator = None
+        background_bounding_box = None
+        
+        # 尝试不同的背景图选择器
+        selectors = ["#cpc_img", "img.captcha-img", ".captcha_background"]
+        for selector in selectors:
+            try:
+                locator = page.locator(selector)
+                if await locator.count() > 0:
+                    background_locator = locator
+                    # 等待元素可见
+                    await locator.wait_for(state="visible", timeout=2000)
+                    # 获取元素的位置和尺寸
+                    background_bounding_box = await locator.bounding_box()
+                    if background_bounding_box:
+                        break
+            except Exception as e:
+                logger.debug(f"选择器 {selector} 无法找到元素或获取位置: {e}")
+        
+        # 如果没有找到合适的元素，刷新重试
+        if not background_locator or not background_bounding_box:
+            logger.info("无法找到背景图元素，尝试刷新验证码")
+            refresh_button = page.locator(".jcap_refresh")
+            if await refresh_button.count() > 0:
+                await refresh_button.click()
+                await asyncio.sleep(random.uniform(1, 3))
+                continue
+            else:
+                logger.error("无法找到刷新按钮，跳过本次尝试")
+                continue
+        
+        backend_top_left_x = background_bounding_box["x"]
+        backend_top_left_y = background_bounding_box["y"]
 
         # 截取元素区域
-        await page.screenshot(path=background_img_path, clip=backend_bounding_box)
+        await page.screenshot(path=background_img_path, clip=background_bounding_box)
 
         # 获取 图片的src 属性和button按键
         word_img_src = await page.locator("div.captcha_footer img").get_attribute("src")
@@ -184,8 +212,22 @@ async def auto_shape(page: Page, retry_times: int = 5):
             target_list = [[x, []] for x in target_char_list]
 
             # 获取大图的二进制
-            background_locator = page.locator("#cpc_img")
+            if not background_locator:
+                # 重新尝试获取背景图元素
+                background_locator = page.locator("#cpc_img")
+                if await background_locator.count() == 0:
+                    logger.info("无法找到背景图元素，刷新中......")
+                    await refresh_button.click()
+                    await asyncio.sleep(random.uniform(2, 4))
+                    continue
+            
             background_locator_src = await background_locator.get_attribute("src")
+            if not background_locator_src:
+                logger.info("无法获取背景图URL，刷新中......")
+                await refresh_button.click()
+                await asyncio.sleep(random.uniform(2, 4))
+                continue
+                
             background_locator_bytes = get_img_bytes(background_locator_src)
             bboxes = det.detection(background_locator_bytes)
 

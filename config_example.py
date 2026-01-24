@@ -43,6 +43,11 @@ cron_expression = "0 5-6 * * *"
 # 浏览器是否开启无头模式，即是否展示整个登录过程
 headless = True
 
+# 浏览器User-Agent配置
+# 可以设置为苹果设备的UA来尝试绕过验证码
+# 例如: Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1
+user_agent = ""
+
 # 是否开启发消息
 is_send_msg = False
 # 更新成功后是否发消息的开关

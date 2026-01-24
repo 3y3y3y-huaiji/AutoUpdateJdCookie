@@ -144,3 +144,5 @@ config.py
 *.png
 
 .idea
+.trae/
+temp_skills_repo/

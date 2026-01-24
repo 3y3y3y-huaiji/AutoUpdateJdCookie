@@ -19,7 +19,7 @@ from utils.tools import (
 
 async def auto_move_slide(
     page: Page,
-    retry_times: int = 2,
+    retry_times: int = 3,
     slider_selector: str = "img.move-img",
     move_solve_type: str = "",
 ):
@@ -33,66 +33,149 @@ async def auto_move_slide(
         move_solve_type: 移动解决类型
     """
     logger.info("开始滑块验证")
+    
+    # 尝试不同的滑块和背景图选择器
+    slot_selectors = ["#slot_img", ".slider-img", ".captcha-slider-img"]
+    main_selectors = ["#main_img", ".slider-background", ".captcha-background"]
+    slider_selectors = [slider_selector, ".slider-btn", ".captcha-slider-btn"]
+    
     for i in range(retry_times + 1):
         try:
-            # 查找小图
-            await page.wait_for_selector("#slot_img", state="visible", timeout=3000)
+            # 尝试找到滑块元素
+            slot_found = False
+            slot_locator = None
+            main_locator = None
+            
+            for slot_sel in slot_selectors:
+                try:
+                    await page.wait_for_selector(slot_sel, state="visible", timeout=2000)
+                    slot_locator = page.locator(slot_sel)
+                    slot_found = True
+                    break
+                except Exception:
+                    continue
+            
+            if not slot_found:
+                # 未找到元素，认为成功或不需要滑块验证，退出循环
+                logger.info("未找到滑块,退出滑块验证")
+                break
+
+            # 滑块验证失败了
+            if i + 1 == retry_times + 1:
+                raise Exception("滑块验证失败了")
+
+            logger.info(f"第{i + 1}次尝试自动移动滑块中...")
+            
+            # 查找背景图
+            main_found = False
+            for main_sel in main_selectors:
+                try:
+                    await page.wait_for_selector(main_sel, state="visible", timeout=2000)
+                    main_locator = page.locator(main_sel)
+                    main_found = True
+                    break
+                except Exception:
+                    continue
+            
+            if not main_found:
+                logger.warning("未找到滑块背景图，重试")
+                await asyncio.sleep(1)
+                continue
+            
+            # 获取 src 属性
+            small_src = await slot_locator.get_attribute("src")
+            background_src = await main_locator.get_attribute("src")
+            
+            if not small_src or not background_src:
+                logger.warning("无法获取滑块图片URL，重试")
+                await asyncio.sleep(1)
+                continue
+
+            # 获取 bytes
+            small_img_bytes = get_img_bytes(small_src)
+            background_img_bytes = get_img_bytes(background_src)
+            
+            if not small_img_bytes or not background_img_bytes:
+                logger.warning("无法获取滑块图片内容，重试")
+                await asyncio.sleep(1)
+                continue
+
+            # 保存小图
+            small_img_path = save_img("small_img", small_img_bytes)
+            # 保存大图
+            background_img_path = save_img("background_img", background_img_bytes)
+
+            # 查找滑块元素
+            slider = None
+            slider_found = False
+            for slider_sel in slider_selectors:
+                try:
+                    slider = page.locator(slider_sel)
+                    if await slider.count() > 0:
+                        await slider.wait_for(state="visible", timeout=2000)
+                        slider_found = True
+                        break
+                except Exception:
+                    continue
+            
+            if not slider_found:
+                logger.warning("未找到滑块按钮，重试")
+                await asyncio.sleep(1)
+                continue
+            
+            await asyncio.sleep(0.5)
+
+            # 优化滑块识别算法，使用多种方法尝试
+            distance = 0
+            try:
+                # 尝试使用文件识别
+                distance = ddddocr_find_files_pic(small_img_path, background_img_path)
+                logger.debug(f"文件识别滑块距离: {distance}")
+            except Exception as e:
+                logger.debug(f"文件识别失败，尝试字节识别: {e}")
+                try:
+                    # 尝试使用字节识别
+                    distance = ddddocr_find_bytes_pic(small_img_bytes, background_img_bytes)
+                    logger.debug(f"字节识别滑块距离: {distance}")
+                except Exception as e2:
+                    logger.error(f"滑块识别失败: {e2}")
+                    await asyncio.sleep(1)
+                    continue
+            
+            # 添加随机偏差，模拟人类操作
+            slide_difference = 10 + random.uniform(-2, 2)
+            
+            # 优化移动轨迹，使用更自然的曲线
+            if move_solve_type == "old":
+                # 用于调试
+                await asyncio.sleep(0.5)
+                await solve_slider_captcha(page, slider, distance, slide_difference)
+                await asyncio.sleep(1)
+                continue
+            
+            # 移动滑块，使用优化的轨迹算法
+            await asyncio.sleep(0.5)
+            await new_solve_slider_captcha(page, slider, distance, slide_difference)
+            await asyncio.sleep(1)
+            
+            # 检查滑块是否成功
+            try:
+                # 等待滑块消失或成功提示
+                await page.wait_for_selector(slot_sel, state="hidden", timeout=3000)
+                logger.info("滑块验证成功")
+                break
+            except Exception:
+                logger.info("滑块可能未完全成功，继续尝试")
+                await asyncio.sleep(1)
+                continue
+                
         except Exception as e:
-            # 未找到元素，认为成功，退出循环
-            logger.info("未找到滑块,退出滑块验证")
-            break
-
-        # 滑块验证失败了
-        if i + 1 == retry_times + 1:
-            raise Exception("滑块验证失败了")
-
-        logger.info(f"第{i + 1}次尝试自动移动滑块中...")
-        # 获取 src 属性
-        small_src = await page.locator("#slot_img").get_attribute("src")
-        background_src = await page.locator("#main_img").get_attribute("src")
-
-        # 获取 bytes
-        small_img_bytes = get_img_bytes(small_src)
-        background_img_bytes = get_img_bytes(background_src)
-
-        # 保存小图
-        small_img_path = save_img("small_img", small_img_bytes)
-        small_img_width = await page.evaluate(
-            '() => { return document.getElementById("slot_img").clientWidth; }'
-        )  # 获取网页的图片尺寸
-        small_img_height = await page.evaluate(
-            '() => { return document.getElementById("slot_img").clientHeight; }'
-        )  # 获取网页的图片尺寸
-
-        # 保存大图
-        background_img_path = save_img("background_img", background_img_bytes)
-        background_img_width = await page.evaluate(
-            '() => { return document.getElementById("main_img").clientWidth; }'
-        )  # 获取网页的图片尺寸
-        background_img_height = await page.evaluate(
-            '() => { return document.getElementById("main_img").clientHeight; }'
-        )  # 获取网页的图片尺寸
-
-        # 获取滑块
-        slider = page.locator(slider_selector)
-        await asyncio.sleep(1)
-
-        # 这里是一个标准算法偏差
-        slide_difference = 10
-
-        if move_solve_type == "old":
-            # 用于调试
-            distance = ddddocr_find_bytes_pic(small_img_bytes, background_img_bytes)
-            await asyncio.sleep(1)
-            await solve_slider_captcha(page, slider, distance, slide_difference)
-            await asyncio.sleep(1)
-            continue
-        # 获取要移动的长度
-        distance = ddddocr_find_files_pic(small_img_path, background_img_path)
-        await asyncio.sleep(1)
-        # 移动滑块
-        await new_solve_slider_captcha(page, slider, distance, slide_difference)
-        await asyncio.sleep(1)
+            logger.warning(f"滑块验证尝试 {i+1} 失败: {e}")
+            if i + 1 < retry_times + 1:
+                logger.info(f"等待 {2+i} 秒后重试")
+                await asyncio.sleep(2 + i)
+            else:
+                raise Exception(f"滑块验证失败: {e}")
 
 
 async def auto_move_slide_v2(
